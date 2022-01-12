@@ -1,0 +1,61 @@
+---
+- hosts: flaskapp_nodes
+  become: yes
+  vars: 
+    APP_REPO: "https://github.com/mrusinowski/CeneoScraperMR.git"
+    APP_NAME: "ceneoscrapper"
+  tasks:
+    - name: "os packages python3-pip git" 
+      yum:
+        name: python3-pip, git
+        state: present
+    - name: "sync repo"
+      git:
+        repo: "{{ APP_REPO }}"
+        dest: "/opt/{{ APP_NAME }}"
+    - name: "add user"
+      user: 
+        name: "{{ APP_NAME }}"
+    - name: "chanege permissions"
+      file:
+        owner: "{{APP_NAME}}"
+        group: "{{APP_NAME}}"
+        path: "/opt/{{APP_NAME}}"
+        recurse: yes
+    - name: "venv for python, install requirements"
+      pip:
+        requirements: "/opt/{{ APP_NAME }}/requirements.txt"
+        virtualenv: "/opt/{{ APP_NAME }}/.venv"
+        virtualenv_command: python3 -m venv
+    - name: "register as a service"
+      template:
+        src: files/app.service
+        dest: "/etc/systemd/system/{{ APP_NAME }}.service"
+    - name: "start my service"
+      systemd:
+        daemon_reload: yes
+        name: "{{ APP_NAME }}"
+        state: restarted
+
+- hosts: proxy_nodes
+  become: yes
+  vars:
+    app_ips:
+      - 3.71.43.17:80
+  tasks:
+    - name: install epel
+      yum:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+        state: present
+    - name: install nginx
+      yum:
+        name: nginx
+        state: present
+    - name: put nginx conf
+      template:
+        src: files/proxy.conf
+        dest: /etc/nginx/conf.d/blog.conf
+    - name: reload nginx
+      systemd:
+        name: nginx
+        state: reloaded
