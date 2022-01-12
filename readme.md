@@ -29,6 +29,6 @@ Dla proxy:
 ```
 ansible-playbook setup.yml -i hosts.ini
 ```
-![](zad2ss.png)
-## Diagram
-![](diagram.png)
+![](glowna.png)
+
+![](produkt.png)
